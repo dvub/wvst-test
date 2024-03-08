@@ -1,4 +1,5 @@
-use nih_plug::log::LevelFilter;
+use nih_plug::debug::nih_log::LoggerBuilder;
+use nih_plug::log::{log, Level};
 // Forked and modified from: https://github.com/robbert-vdh/nih-plug/tree/master/plugins/examples/gain
 use nih_plug::prelude::*;
 use nih_plug_webview::*;
@@ -67,7 +68,7 @@ impl Plugin for Gain {
     type BackgroundTask = ();
     type SysExMessage = ();
 
-    const NAME: &'static str = "HELP ME";
+    const NAME: &'static str = "Gain";
     const VENDOR: &'static str = "Moist Plugins GmbH";
     const URL: &'static str = "https://youtu.be/dQw4w9WgXcQ";
     const EMAIL: &'static str = "info@example.com";
@@ -112,91 +113,76 @@ impl Plugin for Gain {
 
         ProcessStatus::Normal
     }
-    /*
-    fn initialize(
-        &mut self,
-        audio_io_layout: &AudioIOLayout,
-        buffer_config: &BufferConfig,
-        context: &mut impl InitContext<Self>,
-    ) -> bool {
-        simple_logging::log_to_file("/tmp/log.out", LevelFilter::max()).unwrap();
-        println!("ASD");
-        true
-    }
-     */
-    /*
+
     fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
         let params = self.params.clone();
         let gain_value_changed = self.params.gain_value_changed.clone();
-        let editor = WebViewEditor::new(HTMLSource::URL("localhost:3000"), (200, 200));
-        /*
-                       .with_background_color((150, 150, 150, 255))
-           .with_developer_mode(true)
-           .with_keyboard_handler(move |event| {
-               println!("keyboard event: {event:#?}");
-               event.key == Key::Escape
-           })
-           .with_mouse_handler(|event| match event {
-               MouseEvent::DragEntered { .. } => {
-                   println!("drag entered");
-                   EventStatus::AcceptDrop(DropEffect::Copy)
-               }
-               MouseEvent::DragMoved { .. } => {
-                   println!("drag moved");
-                   EventStatus::AcceptDrop(DropEffect::Copy)
-               }
-               MouseEvent::DragLeft => {
-                   println!("drag left");
-                   EventStatus::Ignored
-               }
-               MouseEvent::DragDropped { data, .. } => {
-                   if let DropData::Files(files) = data {
-                       println!("drag dropped: {:?}", files);
-                   }
-                   EventStatus::AcceptDrop(DropEffect::Copy)
-               }
-               _ => EventStatus::Ignored,
-           })
-           .with_event_loop(move |ctx, setter, window| {
-               while let Ok(value) = ctx.next_event() {
-                   if let Ok(action) = serde_json::from_value(value) {
-                       match action {
-                           Action::SetGain { value } => {
-                               setter.begin_set_parameter(&params.gain);
-                               setter.set_parameter_normalized(&params.gain, value);
-                               setter.end_set_parameter(&params.gain);
-                           }
-                           Action::SetSize { width, height } => {
-                               ctx.resize(window, width, height);
-                           }
-                           Action::Init => {
-                               let _ = ctx.send_json(json!({
-                                   "type": "set_size",
-                                   "width": ctx.width.load(Ordering::Relaxed),
-                                   "height": ctx.height.load(Ordering::Relaxed)
-                               }));
-                           }
-                       }
-                   } else {
-                       panic!("Invalid action received from web UI.")
-                   }
-               }
+        let editor = WebViewEditor::new(HTMLSource::String(include_str!("gui.html")), (200, 200))
+            .with_background_color((150, 150, 150, 255))
+            .with_developer_mode(true)
+            .with_keyboard_handler(move |event| {
+                println!("keyboard event: {event:#?}");
+                event.key == Key::Escape
+            })
+            .with_mouse_handler(|event| match event {
+                MouseEvent::DragEntered { .. } => {
+                    println!("drag entered");
+                    EventStatus::AcceptDrop(DropEffect::Copy)
+                }
+                MouseEvent::DragMoved { .. } => {
+                    println!("drag moved");
+                    EventStatus::AcceptDrop(DropEffect::Copy)
+                }
+                MouseEvent::DragLeft => {
+                    println!("drag left");
+                    EventStatus::Ignored
+                }
+                MouseEvent::DragDropped { data, .. } => {
+                    if let DropData::Files(files) = data {
+                        println!("drag dropped: {:?}", files);
+                    }
+                    EventStatus::AcceptDrop(DropEffect::Copy)
+                }
+                _ => EventStatus::Ignored,
+            })
+            .with_event_loop(move |ctx, setter, window| {
+                while let Ok(value) = ctx.next_event() {
+                    if let Ok(action) = serde_json::from_value(value) {
+                        match action {
+                            Action::SetGain { value } => {
+                                setter.begin_set_parameter(&params.gain);
+                                setter.set_parameter_normalized(&params.gain, value);
+                                setter.end_set_parameter(&params.gain);
+                            }
+                            Action::SetSize { width, height } => {
+                                ctx.resize(window, width, height);
+                            }
+                            Action::Init => {
+                                let _ = ctx.send_json(json!({
+                                    "type": "set_size",
+                                    "width": ctx.width.load(Ordering::Relaxed),
+                                    "height": ctx.height.load(Ordering::Relaxed)
+                                }));
+                            }
+                        }
+                    } else {
+                        panic!("Invalid action received from web UI.")
+                    }
+                }
 
-               if gain_value_changed.swap(false, Ordering::Relaxed) {
-                   let _ = ctx.send_json(json!({
-                       "type": "param_change",
-                       "param": "gain",
-                       "value": params.gain.unmodulated_normalized_value(),
-                       "text": params.gain.to_string()
-                   }));
-               }
-           });
-        */
+                if gain_value_changed.swap(false, Ordering::Relaxed) {
+                    let _ = ctx.send_json(json!({
+                        "type": "param_change",
+                        "param": "gain",
+                        "value": params.gain.unmodulated_normalized_value(),
+                        "text": params.gain.to_string()
+                    }));
+                }
+            });
 
         Some(Box::new(editor))
     }
 
-    */
     fn deactivate(&mut self) {}
 }
 
@@ -216,7 +202,7 @@ impl ClapPlugin for Gain {
 impl Vst3Plugin for Gain {
     const VST3_CLASS_ID: [u8; 16] = *b"GainMoistestPlug";
     const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] =
-        &[Vst3SubCategory::Fx, Vst3SubCategory::Dynamics];
+        &[Vst3SubCategory::Fx, Vst3SubCategory::Tools];
 }
 
 nih_export_clap!(Gain);
